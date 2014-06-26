@@ -1,0 +1,38 @@
+input {
+    file {
+        type => "cassandra"
+        start_position => "beginning"
+        path => "/var/log/cassandra/system.log"
+    }
+}
+
+filter {
+    if [type] == "cassandra" {
+        multiline {
+            pattern => "(^ %{LOGLEVEL})"
+            what => "previous"
+            negate => true
+        }
+        grok {
+            match => { "message" => "%{LOGLEVEL:loglevel} %{THREAD:thread} %{TIMESTAMP_ISO8601:time} %{GREEDYDATA:logmessage}" }
+        }
+                mutate {
+                    replace => [ "message", "%{logmessage}" ]
+                    remove_field => ["logmessage"]
+                }
+    }
+    mutate {
+        add_field => ["apikey", "<%= @apikey %>"]
+        add_field => ["tenant_id", "<%= @tenant_id %>"]
+    }
+    if [loglevel] == "INFO" or [loglevel] == "DEBUG"  {
+        drop { }
+    }
+}
+
+output {
+    kafka {
+	broker_list => "<%= @brokerlist %>"
+	topic_id => "logTopic"
+    }
+}

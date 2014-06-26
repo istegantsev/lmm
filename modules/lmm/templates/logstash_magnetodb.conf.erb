@@ -1,0 +1,41 @@
+input {
+    file {
+        type => "magnetodb"
+        start_position => "beginning"
+        path => "/var/log/magnetodb/magnetodb.log"
+    }
+}
+
+filter {
+    if [type] == "magnetodb" {
+        multiline {
+            pattern => "(^%{TIMESTAMP_ISO8601})"
+            what => "previous"
+            negate => true
+        }
+                if ([message] == "") {
+                    drop{}
+                }
+        grok {
+            match => { "message" => "(?m)%{TIMESTAMP_ISO8601:time} %{NUMBER:pid} %{LOGLEVEL:loglevel} %{PACKAGE:package} %{DASH} %{GREEDYDATA:logmessage}" }
+        }
+                mutate {
+                    replace => [ "message", "%{logmessage}" ]
+                    remove_field => ["logmessage"]
+                }
+    }
+    mutate {
+        add_field => ["apikey", "<%= @apikey %>"]
+        add_field => ["tenant_id", "<%= @tenant_id %>"]
+    }
+    if [loglevel] == "INFO" or [loglevel] == "DEBUG"  {
+        drop { }
+    }
+}
+
+output {
+    kafka {
+	broker_list => "<%= @brokerlist %>"
+	topic_id => "logTopic"
+    }
+}

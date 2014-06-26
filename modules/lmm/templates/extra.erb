@@ -1,0 +1,7 @@
+PACKAGE ([a-zA-Z_-]{1,}\.{0,1}[a-zA-Z._-]{1,})
+DASH ([\[\-\]]{1,})
+THREAD (\[.+\])
+NOTDIGIT (^\D+)
+NEWLINE (^\n)
+EMPTYSTRING (^\s*$)
+NOTLOGLEVEL (^(?!%{LOGLEVEL}).*)
